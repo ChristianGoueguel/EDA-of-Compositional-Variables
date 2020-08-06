@@ -43,7 +43,7 @@ library(factoextra)
 ```
 
 ```{r Loading dataset, message=FALSE, warning=FALSE}
-RAWdata = fread(file = "mydata.csv") %>% 
+RAWdata <- fread(file = "mydata.csv") %>% 
   unique() %>% 
   as_tibble() %>%
   str()
@@ -73,7 +73,7 @@ spec_sd <-
 ```
 
 ```{r relative standard deviation}
-spec_rsd = (spec_sd[, -1]/spec_avg[ , -c(1:5)]) * 100
+spec_rsd <- (spec_sd[, -1] / spec_avg[ , -c(1:5)]) * 100
 ```
 
 ```{r}
