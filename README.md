@@ -5,4 +5,4 @@ Compositional data are closed data, meaning that they sum up to a constant (e.g.
 
 ![ternarydiag](https://user-images.githubusercontent.com/59129468/89554464-e1d79380-d7dc-11ea-82ea-26e1264ada56.png)
 
-![000043](https://user-images.githubusercontent.com/59129468/89555004-8d80e380-d7dd-11ea-9774-6ca64575023d.png)
+![000043 copy](https://user-images.githubusercontent.com/59129468/89555260-d33dac00-d7dd-11ea-9831-10d5268e158f.png)
