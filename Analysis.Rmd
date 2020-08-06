@@ -1,0 +1,528 @@
+---
+title: "Exploratory Analysis of Compositional data: Case Study From Agricultural Soils"
+author: "Christian L. Goueguel"
+date: "01/29/2020"
+output:
+  html_document:
+    df_print: paged
+  word_document:
+    fig_caption: yes
+    fig_height: 6
+    fig_width: 8
+---
+
+```{r setup, include = FALSE, message = FALSE, warning = FALSE}
+library(knitr)
+knitr::opts_chunk$set(
+	echo    = FALSE,
+	fig.cap = "...",
+	message = FALSE,
+	warning = FALSE,
+	cache   = FALSE,
+	prompt  = FALSE,
+	results = "asis"
+)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+ggplot2::theme_set(ggplot2::theme_bw(base_size = 14))
+```
+
+```{r message = FALSE, warning = FALSE}
+library(data.table)
+library(tidyverse)
+library(soiltexture)
+library(ggtern)
+library(viridis)
+library(hrbrthemes)
+library(compositions)
+library(robCompositions)
+library(FactoMineR)
+library(factoextra)
+```
+
+```{r Loading dataset, message=FALSE, warning=FALSE}
+RAWdata = fread(file = "mydata.csv") %>% 
+  unique() %>% 
+  as_tibble() %>%
+  str()
+```
+
+```{r}
+RAWdata %>% anyNA()
+```
+
+```{r}
+RAWdata$SampleID <- RAWdata$SampleID %>% as_factor()
+RAWdata$Location <- RAWdata$Location %>% as_factor()
+```
+
+```{r average}
+spec_avg <- 
+  aggregate(x = RAWdata[, -c(1,2,7158)], by = list(RAWdata$SampleID), FUN = mean) %>%
+  as_tibble() %>% 
+  rename(SampleID = Group.1)
+```
+
+```{r standard deviation}
+spec_sd <- 
+  aggregate(x = RAWdata[, -c(1:6,7158)], by = list(RAWdata$SampleID), FUN = sd) %>%
+  as_tibble() %>%
+  rename(SampleID = Group.1)
+```
+
+```{r relative standard deviation}
+spec_rsd = (spec_sd[, -1]/spec_avg[ , -c(1:5)]) * 100
+```
+
+```{r}
+spec_avg %>% anyNA()
+```
+
+```{r}
+spec_avg %>% glimpse()
+```
+
+```{r}
+data <- spec_avg[ ,c(1:5)]
+```
+
+```{r, fig.height = 7, fig.width = 6, fig.align = "center"}
+#png(file = "ternaryDiagrm1.png")
+soil.data = data.frame(CLAY = data$Clay, SILT = data$Silt, SAND = data$Sand, OM = data$OM)
+geo = TT.geo.get()
+kde.res = TT.kde2d(geo = geo, tri.data = soil.data)
+TT.contour(x = kde.res,
+           geo = geo,
+           main = "Soils texture data",
+           lwd = 1,
+           col = "black"
+           )
+TT.plot(class.sys = "USDA-NCSS.TT",
+        class.p.bg.col = TRUE,
+        tri.data = soil.data,
+        z.name = NULL,
+        geo = geo,
+        grid.show = TRUE,
+        add = TRUE,
+        pch = 19,
+        col = "blue",
+        lwd = 1
+        )
+#dev.off()
+```
+
+```{r, fig.height = 7, fig.width = 6, fig.align = "center"}
+#png(file = "ternaryDiagrm2.png")
+TT.plot(class.sys = "none",
+        tri.data = soil.data,
+        z.name = "OM",
+        lwd = 1,
+        main = "Soil texture triangle and SOM bubble plot"
+        ) 
+
+z.cex.range = TT.get("z.cex.range")
+def.pch = par("pch")
+def.col = par("col")
+def.cex = TT.get("cex")
+oc.str = TT.str(soil.data[ ,"OM"], z.cex.range[1], z.cex.range[2])
+
+legend(x = 80,
+       y = 90,
+       title = expression(bold('SOM [%]')),
+       legend = formatC(c(min(soil.data[,"OM"] ), quantile(soil.data[,"OM"], probs = c(25,50,75)/100),max(soil.data[,"OM"])),
+       format = "f",
+       digits = 1,
+       width  = 1,
+       flag   = "0"),
+       pt.lwd = 1,
+       col    = def.col,
+       pt.cex = c(min( oc.str ), quantile(oc.str, probs = c(25,50,75)/100), max(oc.str)),
+       pch    = def.pch,
+       bty    = "o",
+       bg     = NA,
+       box.col= NA,
+       cex    = def.cex
+       )
+#dev.off()
+```
+
+```{r}
+TT.classes.tbl(class.sys = "USDA-NCSS.TT" )
+```
+
+```{r}
+soil.classification <- 
+  TT.points.in.classes(tri.data = soil.data, class.sys = "USDA-NCSS.TT") %>% 
+  as_tibble()
+```
+
+```{r}
+soil.classification %>% colSums()
+```
+
+```{r}
+soil.texture <- tibble(texture = c("Fine","Fine","Fine","Fine","Fine","Medium","Medium","Medium","Coarse","Medium","Coarse","Coarse"),
+                       class = c("C","SIC","SC","CL","SICL","SCL","L","SIL","SL","SI","LS","S"), 
+                       number_sample = colSums(soil.classification)
+                       )
+```
+
+```{r message=FALSE, warning=FALSE}
+soil.texture %>%
+  ggplot() +
+  geom_bar(aes(x = class, fill = class, weight = number_sample)) +
+  geom_text(aes(x = class, y = number_sample, label = number_sample), nudge_x = -0.1, nudge_y = 1) +
+  scale_fill_hue() +
+  labs(x = " ", y = "Total number of soil samples") +
+  theme_grey(base_size = 14) +
+  theme(legend.position = "none")
+ggsave("soil_classes_ungrouped.png")
+```
+
+```{r fig.height=5, fig.width=8}
+soil.texture %>%
+  ggplot() +
+  aes(x = texture, y = number_sample, fill = class) +
+  geom_bar(position = "stack", stat = "identity") +
+  geom_text(aes(x = texture, y = number_sample, label = class), colour = "red", nudge_x = 0, nudge_y = 1) +
+  scale_fill_viridis(discrete = TRUE) +
+  labs(x = "texture", y = "Total number of soil samples") +
+  theme_ipsum(base_size = 14, axis = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+soil.texture %>%
+  ggplot() +
+  aes(x = class, fill = texture, weight = number_sample) +
+  geom_bar(colour="black") +
+  scale_fill_brewer(palette = "BuGn") +
+  geom_text(aes(x = class, y = number_sample, label = number_sample), colour  = "darkred", nudge_x = -0.1, nudge_y = 1) +
+  labs(x = " ", y = "Total number of soil samples") +
+  facet_wrap(vars(texture), scales = "free_x") +
+  theme(legend.position = "none") +
+  theme_grey(base_size = 14)
+ggsave("soil_classes_grouped.png")
+```
+
+```{r fig.align=, fig.height=7, fig.width=6, message=FALSE, warning=FALSE}
+soil.data %>%
+  ggtern(aes(x = SAND, y = CLAY, z = SILT)) + 
+    stat_density_tern(aes(fill = ..level.., alpha = ..level..), geom = "polygon") +
+    scale_fill_gradient2(low = "red", high = "blue") +  
+    ggtitle(" ") +
+    xlab("Sand") + 
+    ylab("Clay") +
+    zlab("Silt") +
+    theme_bw(base_size = 14) +
+    guides(color = "none", fill = "none", alpha = "none")
+ggsave("soil_triangle_density.png")
+```
+
+```{r}
+data$OM %>% skim()
+```
+
+```{r}
+compo.data <- data[ ,-4] %>% acomp()
+```
+
+```{r, fig.height = 7, fig.width = 6, fig.align = "center"}
+#png(file = "boxplot.png")
+boxplot.acomp(compo.data,
+              log = TRUE,
+              varwidth = TRUE,
+              notch = TRUE,
+              dots = TRUE,
+              boxes = TRUE
+              )
+#dev.off()
+```
+
+```{r}
+compo.data %>% mean()
+compo.data %>% variation() # Variation matrix
+compo.data %>% var()       # Variance matrix of the clr-transform
+compo.data %>% msd()       # mean standard deviation
+compo.data %>% mvar()
+```
+
+```{r}
+source("soilTextureClassification.R")
+```
+
+```{r}
+pca.data <- 
+  rbind(Coarse_group, Medium_group, Fine_group) %>% 
+  merge(spec_avg[ ,-c(2:5)], by ="SampleID")
+```
+
+```{r}
+pca.data$class <- pca.data$class %>% as_factor()
+pca.data$texture <- pca.data$texture %>% as_factor()
+```
+
+```{r}
+pca.data$class <- factor(pca.data$class, c("C","CL","SICL","SIC","SI","SIL","SCL","L","S","LS","SL"))
+```
+
+```{r}
+# Average of LIBS spectra by texture
+spec.texture <- 
+  aggregate(pca.data[ ,-(1:7)], list(pca.data$texture), mean) %>% 
+  as_tibble() %>% 
+  rename(texture = Group.1)
+```
+
+```{r}
+# Average of LIBS spectra by textural class
+spec.class <- 
+  aggregate(pca.data[ ,-(1:7)], list(pca.data$class, pca.data$texture), mean) %>% 
+  as_tibble() %>% 
+  rename(class = Group.1, texture = Group.2)
+```
+
+```{r}
+spec.texture.transp <- 
+  spec.texture[ ,-1] %>% 
+  t() %>% 
+  as_tibble()
+```
+
+```{r}
+colnames(spec.texture.transp) <- spec.texture$texture
+spec.texture.transp$Wavelength <- spec.texture[ ,-1] %>% 
+  t() %>% 
+  as.data.frame() %>%
+  row.names() %>%
+  as.numeric()
+```
+
+```{r}
+offset = 3500
+```
+
+```{r}
+spec.texture.transp %>%
+  ggplot() +
+  geom_line(aes(x = Wavelength, y = Fine), size = 0.6, colour = "blue") +
+  geom_line(aes(x = Wavelength, y = Medium + 0*offset), size = 0.4, colour = "red") +
+  geom_line(aes(x = Wavelength, y = Coarse + 0*offset), size = 0.5, colour = "darkgreen") +
+  #geom_text(x = 210, y = 0.03, colour = "blue", size = 5, label = "PC1") +
+  labs(x = "Wavelength (nm)", y = "Avareged intensity (a.u.)") +
+  theme_grey(base_size = 14)
+```
+
+```{r}
+spec.class.transp <- 
+  spec.class[ ,-c(1,2)] %>% 
+  t() %>% 
+  as_tibble()
+```
+
+```{r}
+colnames(spec.class.transp) <- spec.class$class
+spec.class.transp$Wavelength <- spec.class[ ,-c(1,2)] %>% 
+  t() %>% 
+  as.data.frame() %>%
+  row.names() %>%
+  as.numeric()
+```
+
+
+```{r}
+spec.class.transp %>%
+  ggplot() +
+  geom_line(aes(x = Wavelength, y = C), size = 0.6, colour = "blue") +
+  geom_line(aes(x = Wavelength, y = CL), size = 0.4, colour = "red") +
+  geom_line(aes(x = Wavelength, y = SICL), size = 0.5, colour = "darkgreen") +
+  #geom_text(x = 210, y = 0.03, colour = "blue", size = 5, label = "PC1") +
+  labs(x = "Wavelength (nm)", y = "Avareged intensity (a.u.)") +
+  theme_grey(base_size = 14)
+```
+
+```{r}
+Sum.spec.texture <- spec.texture.transp[, -4] %>% colSums() %>% as.data.frame()
+colnames(Sum.spec.texture) = "Intensity"
+Sum.spec.texture
+```
+
+```{r}
+Sum.spec.class <- 
+  spec.class.transp[, -12] %>%
+  filter_all(any_vars(. < 2500)) %>%
+  as.matrix() %>%
+  colMedians() %>% 
+  as.data.frame()
+```
+
+```{r}
+colnames(Sum.spec.class) <- "Intensity"
+Sum.spec.class$Nomalized <- Sum.spec.class$Intensity/max(Sum.spec.class$Intensity)
+Sum.spec.class$class <- row.names(Sum.spec.class)
+Sum.spec.class$texture <- c("Fine","Fine","Fine","Medium","Coarse","Coarse","Medium","Coarse","Fine","Medium","Medium")
+```
+
+```{r}
+Sum.spec.class %>%
+  arrange(Nomalized) %>%
+  mutate(class = factor(class, levels = class)) %>%
+  ggplot(aes(x = class, y = Nomalized, group = texture, color = texture)) +
+  geom_point() +
+  geom_line() +
+  labs(x = " ", y = "Normalized averaged intensity") +
+  theme_bw(base_size = 14)
+ggsave("Normalized_total_intensity.png")
+```
+
+```{r}
+spec_rsd <- cbind(Soil.property, spec_rsd)
+```
+
+```{r}
+# Average of RSD spectra by textural class
+specRSD.class <- 
+  aggregate(spec_rsd[ ,-(1:7)], list(spec_rsd$class, spec_rsd$texture), mean) %>% 
+  as_tibble() %>% 
+  rename(class = Group.1, texture = Group.2)
+```
+
+```{r}
+specRSD.class.transp <- 
+  specRSD.class[ ,-c(1,2)] %>% 
+  t() %>% 
+  as_tibble()
+```
+
+```{r}
+colnames(specRSD.class.transp) <- specRSD.class$class
+specRSD.class.transp$Wavelength <- 
+  specRSD.class[ ,-c(1,2)] %>% 
+  t() %>% 
+  as.data.frame() %>%
+  row.names() %>%
+  as.numeric()
+```
+
+```{r}
+Sum.specRSD.class <- 
+  specRSD.class.transp[, -12] %>%
+  filter_all(any_vars(. > 10)) %>%
+  as.matrix() %>%
+  colMedians() %>%
+  as.data.frame()
+```
+
+```{r}
+colnames(Sum.specRSD.class) <- "RSD"
+Sum.specRSD.class$class <- row.names(Sum.specRSD.class)
+Sum.specRSD.class$texture <- c("Fine","Fine","Fine","Fine","Medium","Medium","Medium","Medium","Coarse","Coarse","Coarse")
+```
+
+```{r}
+Sum.specRSD.class %>%
+  arrange(RSD) %>%
+  mutate(class = factor(class, levels = class)) %>%
+  ggplot(aes(x = class, y = RSD, group = texture, color = texture)) +
+  geom_point() +
+  geom_line() +
+  labs(x = " ", y = "Relative standard deviation (%)") +
+  theme_bw(base_size = 14)
+ggsave("Relative_standard_deviation.png")
+```
+
+```{r}
+spec.diff <- 
+  spec.class[1, -c(1,2)] - spec.class[10, -c(1,2)] %>% 
+  as.data.frame()
+```
+
+```{r}
+selec.wave <- which(spec.diff > 800)
+selec.wave
+```
+
+```{r}
+spec.diff[selec.wave]
+```
+
+```{r}
+set.seed(001234)
+pca.model <- 
+  pca.data[, -c(1,6,7)] %>%
+  select(Clay, Silt, Sand, OM, colnames(spec.diff[selec.wave])) %>%
+  PCA(scale.unit = TRUE, graph = FALSE)
+```
+
+```{r}
+fviz_eig(pca.model,
+         choice = "variance",
+         addlabels = TRUE,
+         ylim = c(0, 100),
+         geom = c("bar","line"),
+         barfil = "#17456E",
+         barcolor = "black",
+         linecolor = "#FF0000",
+         ncp = 10) +
+  labs(title = " ", x = "Principal Component", y = "Percent Variance Explained") +
+  theme_grey(base_size = 14)
+```
+
+```{r}
+p1 = fviz_contrib(pca.model, choice = "var", axes = 1, fill = "pink", color = "grey", top = 10)
+p2 = fviz_contrib(pca.model, choice = "var", axes = 2, fill = "skyblue", color = "grey", top = 10)
+p3 = fviz_contrib(pca.model, choice = "var", axes = 3, fill = "lightgreen", color = "grey", top = 10)
+p4 = fviz_contrib(pca.model, choice = "var", axes = 4, fill = "yellow", color = "grey", top = 10)
+grid.arrange(p1, p2, p3, p4, ncol = 2)
+```
+
+```{r, fig.height = 7, fig.width = 8, fig.align = "center"}
+fviz_pca_biplot(pca.model,
+                axes = c(1,2),
+                geom.ind = "point",
+                geom.var = c("arrow", "text"),
+                pointshape = 21,
+                pointsize = 4,
+                alpha = 1,
+                label = "var",
+                select.var = list(name = c("Clay", "Silt", "Sand")),
+                fill.ind = pca.data$texture,
+                col.ind = "black",
+                col = "darkred",
+                palette = "jco",
+                legend.title = "texture",
+                repel = TRUE,
+                addEllipses = FALSE,
+                ellipse.level= 0.95,
+                ellipse.type = "n") +
+  labs(x = "t1 (69.3%)", y = "t3 (5.8%)") +
+  theme_bw(base_size = 14)
+ggsave("PCA_biplot_texture.png")
+```
+
+```{r, fig.height = 7, fig.width = 8, fig.align = "center"}
+fviz_pca_biplot(pca.model,
+                axes = c(1,3),
+                geom.ind = "point",
+                geom.var = c("arrow", "text"),
+                pointshape = 21,
+                pointsize = 4,
+                alpha = 1,
+                label = "var",
+                select.var = list(name = c("Clay", "Silt", "Sand")),
+                fill.ind = pca.data$class,
+                col.ind = "black",
+                col = "darkred",
+                palette = c("#000066","#3333ff","#6666ff","#ccccff", # Fine texture
+                            "#663d00","#b36b00","#ff9900","#ffd699", # Coarse texture
+                            "#b3ffb3","#009900","#003300"),          # Medium texture
+                legend.title = "Textural class",
+                repel = TRUE,
+                addEllipses = FALSE,
+                ellipse.level= 0.95,
+                ellipse.type = "n") +
+  labs(x = "t1 (69.3%)", y = "t3 (5.8%)") +
+  theme_bw(base_size = 14)
+ggsave("PCA_biplot_class.png")
+```
