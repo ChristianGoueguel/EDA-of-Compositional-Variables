@@ -1,6 +1,9 @@
 #------------------------------------------------------------------------------------------------------
 # Soil texture classification based on the USDA classification system.
 #------------------------------------------------------------------------------------------------------
+#
+# Note: data is a data frame containing the pourcentage of sand, silt, and clay.
+#
 
 # Coarse texture group
 sand_class <- 
