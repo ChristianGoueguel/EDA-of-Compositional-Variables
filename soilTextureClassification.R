@@ -4,123 +4,100 @@
 
 # Coarse texture group
 sand_class <- 
-  soil_data %>%
-  filter(soil_data$silt + 1.5 * soil_data$clay < 15)
+  data %>%
+  filter(data$silt + 1.5 * data$clay < 15)
 loamySand_class <- 
-  soil_data %>%
-  filter(soil_data$silt + 1.5 * soil_data$clay >= 15 & 
-           soil_data$silt + 2 * soil_data$clay < 30
+  data %>%
+  filter(data$silt + 1.5 * data$clay >= 15 & 
+           data$silt + 2 * data$clay < 30
          )
 sandyLoam_class <- 
-  soil_data %>%
-  filter(soil_data$clay >= 7 &
-           soil_data$clay < 20 & 
-           soil_data$sand > 52 & 
-           soil_data$silt + 2 * soil_data$clay >= 30 |
-           soil_data$clay < 7 &
-           soil_data$silt < 50 &
-           soil_data$silt + 2 * soil_data$clay >= 30
+  data %>%
+  filter(data$clay >= 7 &
+           data$clay < 20 & 
+           data$sand > 52 & 
+           data$silt + 2 * data$clay >= 30 |
+           data$clay < 7 &
+           data$silt < 50 &
+           data$silt + 2 * data$clay >= 30
          )
-
-cat("Sand class: ")
-dim(sand_class)
-
-cat("Loamy sand class: ")
-dim(loamySand_class)
-
-cat("Sandy loam class: ")
-dim(sandyLoam_class)
+sand_class$class <- replicate(n = nrow(sand_class), expr = "S")
+loamySand_class$class <- replicate(n = nrow(loamySand_class), expr = "LS")
+sandyLoam_class$class <- replicate(n = nrow(sandyLoam_class), expr = "SL")
 
 
 # Medium texture group
 loam_class <- 
-  soil_data %>%
-  filter(soil_data$clay >= 7 &
-           soil_data$clay < 27 & 
-           soil_data$silt >= 28 &
-           soil_data$silt < 50 &
-           soil_data$sand <= 52
+  data %>%
+  filter(data$clay >= 7 &
+           data$clay < 27 & 
+           data$silt >= 28 &
+           data$silt < 50 &
+           data$sand <= 52
          )
 siltLoam_class <- 
-  soil_data %>%
-  filter(soil_data$silt >= 50 &
-           soil_data$clay >= 12 &
-           soil_data$clay < 27 | 
-           soil_data$silt >= 50 & 
-           soil_data$silt < 80 & 
-           soil_data$clay < 12
+  data %>%
+  filter(data$silt >= 50 &
+           data$clay >= 12 &
+           data$clay < 27 | 
+           data$silt >= 50 & 
+           data$silt < 80 & 
+           data$clay < 12
          )
 silt_class <- 
-  soil_data %>%
-  filter(soil_data$silt >= 80 & 
-           soil_data$clay < 12
+  data %>%
+  filter(data$silt >= 80 & 
+           data$clay < 12
          )
-
-cat("Loam class: ")
-dim(loam_class)
-
-cat("Silt loam class: ")
-dim(siltLoam_class)
-
-cat("Silt class: ")
-dim(silt_class)
+loam_class$class <- replicate(n = nrow(loam_class), expr = "L")
+siltLoam_class$class <- replicate(n = nrow(siltLoam_class), expr = "SIL")
+silt_class$class <- replicate(n = nrow(silt_class), expr = "SI")
 
 
 # Fine texture group
 sandyClayLoam_class <- 
-  soil_data %>%
-  filter(soil_data$clay >= 20 &
-           soil_data$clay < 35 &
-           soil_data$silt < 28 &
-           soil_data$sand > 45
+  data %>%
+  filter(data$clay >= 20 &
+           data$clay < 35 &
+           data$silt < 28 &
+           data$sand > 45
          )
 clayLoam.class <- 
-  soil_data %>%
-  filter(soil_data$clay >= 27 &
-           soil_data$clay < 40 &
-           soil_data$sand > 20 &
-           soil_data$sand <= 45
+  data %>%
+  filter(data$clay >= 27 &
+           data$clay < 40 &
+           data$sand > 20 &
+           data$sand <= 45
          )
 siltyClayLoam_class <- 
-  soil_data %>%
-  filter(soil_data$clay >= 27 &
-           soil_data$clay < 40 &
-           soil_data$sand <= 20
+  data %>%
+  filter(data$clay >= 27 &
+           data$clay < 40 &
+           data$sand <= 20
          )
 sandyClay_class <- 
-  soil_data %>%
-  filter(soil_data$clay >= 35 & 
-           soil_data$sand > 45
+  data %>%
+  filter(data$clay >= 35 & 
+           data$sand > 45
          )
 siltyClay_class <- 
-  soil_data %>%
-  filter(soil_data$clay >= 40 &
-           soil_data$silt >= 40
+  data %>%
+  filter(data$clay >= 40 &
+           data$silt >= 40
          )
 clay_class <- 
-  soil_data %>%
-  filter(soil_data$clay >= 40 &
-           soil_data$sand <= 45 &
-           soil_data$silt < 40
+  data %>%
+  filter(data$clay >= 40 &
+           data$sand <= 45 &
+           data$silt < 40
          )
+sandyClayLoam_class$class <- replicate(n = nrow(sandyClayLoam_class), expr = "SCL")
+clayLoam_class$class <- replicate(n = nrow(clayLoam_class), expr = "CL")
+siltyClayLoam_class$class <- replicate(n = nrow(siltyClayLoam_class), expr = "SICL")
+sandyClay_class$class <- replicate(n = nrow(sandyClay_class), expr = "SC")
+siltyClay_class$class <- replicate(n = nrow(siltyClay_class), expr = "SIC")
+clay_class$class <- replicate(n = nrow(clay_class), expr = "C")
 
-cat("Sandy clay loam class: ")
-dim(sandyClayLoam_class)
-
-cat("claty loam class: ")
-dim(clayLoam_class)
-
-cat("Silty clay loam class: ")
-dim(siltyClayLoam_class)
-
-cat("Sandy clay class: ")
-dim(sandyClay_class)
-
-cat("Silty clay class: ")
-dim(siltyClay_class)
-
-cat("Clay class: ")
-dim(clay_class)
 
 # Binding 
 Coarse_group <- rbind(sand_class, loamySand_class, sandyLoam_class)
