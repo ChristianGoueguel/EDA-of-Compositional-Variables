@@ -127,3 +127,7 @@ Coarse_group <- rbind(sand_class, loamySand_class, sandyLoam_class)
 Medium_group <- rbind(loam_class, siltLoam_class, silt_class)
 Fine_group <- rbind(sandyClayLoam_class, clayLoam_class, siltyClayLoam_class, sandyClay_class, siltyClay_class, clay_class)
 
+Coarse_group$texture <- replicate(n = nrow(Coarse_group), expr = "coarse")
+Medium_group$texture <- replicate(n = nrow(Medium_group), expr = "medium")
+Fine_group$texture <- replicate(n = nrow(Fine_group), expr = "fine")
+
