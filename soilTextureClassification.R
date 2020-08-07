@@ -65,7 +65,7 @@ sandyClayLoam_class <-
            data$silt < 28 &
            data$sand > 45
          )
-clayLoam.class <- 
+clayLoam_class <- 
   data %>%
   filter(data$clay >= 27 &
            data$clay < 40 &
